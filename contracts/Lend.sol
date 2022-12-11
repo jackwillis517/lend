@@ -68,6 +68,10 @@ contract Lend {
         return Debt[msg.sender];
     }
 
+    function removeUser() public {
+        Worthiness[msg.sender] = 0;
+    }
+
 
     //-------------------------------Lending workflow-------------------------------//
     // Allows a lender to provide liquidity to Lend in return for redeemable interest tokens
@@ -95,7 +99,7 @@ contract Lend {
 
     //-------------------------------Borrowing workflow-------------------------------//
     // Allows a borrow to see how much collateral and debt would be incurred to borrow a specific amount
-    function checkBorrow (uint256 amount) public view returns (uint256, uint256) {
+    function checkBorrowDebt (uint256 amount) public view returns (uint256) {
         require(Blacklist[msg.sender] != true, "This borrower cannot be trusted, loan denied.");
         require(Worthiness[msg.sender] > 0, "This user hasn't registered yet, please register your wallet.");
         require(Debt[msg.sender] == 0, "This person has already borrowed ether.");
@@ -105,9 +109,20 @@ contract Lend {
         // Debt = (1 + (worthiness/1000)) * amount borrowed
         // Collateral = (worthiness/1000) * amount borrowed
         uint256 projectedDebt = ((1000 + Worthiness[msg.sender]) * (amountInEther / 1e15)) / 1e3;
-        uint256 projectedCollateral = ((Worthiness[msg.sender]) * (amountInEther / 1e15)) / 1e3;
+        return projectedDebt;
+    }
 
-        return (projectedDebt, projectedCollateral);
+    function checkBorrowCollateral (uint256 amount) public view returns (uint256) {
+        require(Blacklist[msg.sender] != true, "This borrower cannot be trusted, loan denied.");
+        require(Worthiness[msg.sender] > 0, "This user hasn't registered yet, please register your wallet.");
+        require(Debt[msg.sender] == 0, "This person has already borrowed ether.");
+        uint256 amountInEther = amount * 1e18;
+
+        // Debt & Collateral are recorded in Finney because of fractional values
+        // Debt = (1 + (worthiness/1000)) * amount borrowed
+        // Collateral = (worthiness/1000) * amount borrowed
+        uint256 projectedCollateral = ((Worthiness[msg.sender]) * (amountInEther / 1e15)) / 1e3;
+        return projectedCollateral;
     }
     
     // Allows a borrower to borrow ether from the protocol
